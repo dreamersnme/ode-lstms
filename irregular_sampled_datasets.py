@@ -254,13 +254,20 @@ class PersonData:
         "020-000-032-221": 3,
     }
 
-    def __init__(self, seq_len=32):
+    def __init__(self, return_sequences, seq_len=32):
 
         self.seq_len = seq_len
         self.num_classes = 7
         all_x, all_t, all_y = self.load_crappy_formated_csv()
+
+        print("all_x.shape: ", str(len(all_x[0])))
+        print("all_t.shape: ", str(len(all_t[0])))
+        print("all_y.shape: ", str(len(all_y[0])))
+
+
         all_x, all_t, all_y = self.cut_in_sequences(
-            all_x, all_t, all_y, seq_len=seq_len, inc=seq_len // 2
+            # all_x, all_t, all_y, seq_len=seq_len, inc=seq_len // 2
+            all_x, all_t, all_y, seq_len=seq_len, inc=1, return_sequences =return_sequences
         )
 
         print("all_x.shape: ", str(all_x.shape))
@@ -306,8 +313,9 @@ class PersonData:
             sys.exit(-1)
         with open("data/person/ConfLongDemo_JSI.txt", "r") as f:
             current_person = "A01"
-
+            rownum = 0
             for line in f:
+                rownum +=1
                 arr = line.split(",")
                 if len(arr) < 6:
                     break
@@ -348,10 +356,10 @@ class PersonData:
                 series_x.append(feature_col)
                 series_t.append(elasped)
                 series_y.append(label_col)
-
+            print("rownum", rownum)
         return all_x, all_t, all_y
 
-    def cut_in_sequences(self, all_x, all_t, all_y, seq_len, inc=1):
+    def cut_in_sequences(self, all_x, all_t, all_y, seq_len, inc=1, return_sequences=False):
 
         sequences_x = []
         sequences_t = []
@@ -362,10 +370,12 @@ class PersonData:
 
             for s in range(0, x.shape[0] - seq_len, inc):
                 start = s
+
                 end = start + seq_len
                 sequences_x.append(x[start:end])
                 sequences_t.append(t[start:end])
-                sequences_y.append(y[start:end])
+                if return_sequences: sequences_y.append(y[start:end])
+                else: sequences_y.append(y[end])
 
         return (
             np.stack(sequences_x, axis=0),
