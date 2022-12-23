@@ -2,9 +2,9 @@
 
 import torch
 import torch.nn as nn
-from torchdyn.models import NeuralDE
+from torchdyn.core import NeuralDE
 import pytorch_lightning as pl
-from pytorch_lightning.metrics.functional import accuracy
+from torchmetrics.functional import accuracy
 
 
 class ODELSTMCell(nn.Module):
@@ -131,12 +131,15 @@ class IrregularSequenceLearner(pl.LightningModule):
         else:
             x, t, y = batch
             mask = None
+
+
         y_hat = self.model.forward(x, t, mask)
         y_hat = y_hat.view(-1, y_hat.size(-1))
         y = y.view(-1)
         loss = nn.CrossEntropyLoss()(y_hat, y)
         preds = torch.argmax(y_hat.detach(), dim=-1)
-        acc = accuracy(preds, y)
+
+        acc = accuracy(preds, y, task="multiclass", num_classes=7)
         self.log("train_acc", acc, prog_bar=True)
         self.log("train_loss", loss, prog_bar=True)
         return {"loss": loss}
@@ -154,11 +157,19 @@ class IrregularSequenceLearner(pl.LightningModule):
         loss = nn.CrossEntropyLoss()(y_hat, y)
 
         preds = torch.argmax(y_hat, dim=1)
-        acc = accuracy(preds, y)
+        acc = accuracy(preds, y,task="multiclass", num_classes=7)
 
-        self.log("val_loss", loss, prog_bar=True)
-        self.log("val_acc", acc, prog_bar=True)
+        # self.log("val_loss", loss, prog_bar=True)
+        # self.log("val_acc", acc, prog_bar=True)
         return loss
+
+    # def validation_epoch_end(self, outputs):
+    #     # called at the end of the validation epoch
+    #     # outputs is an array with what you returned in validation_step for each batch
+    #     # outputs = [{'loss': batch_0_loss}, {'loss': batch_1_loss}, ..., {'loss': batch_n_loss}]
+    #     avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+    #     return {'avg_val_loss': avg_loss}
+
 
     def test_step(self, batch, batch_idx):
         # Here we just reuse the validation_step for testing
